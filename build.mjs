@@ -72,6 +72,16 @@ const riskLabel = { low: "Low risk", medium: "Medium risk", high: "High risk" };
 const esc = (s) => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/"/g, "&quot;");
 const pubmed = (q) => "https://pubmed.ncbi.nlm.nih.gov/?term=" + encodeURIComponent(q);
 
+// Live data from PubMed free public API (no key, no paid scraper). Runs at build time; a weekly GitHub Action rebuilds.
+const checked = new Date().toISOString().slice(0, 10);
+for (const i of items) {
+  try {
+    const r = await fetch("https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esearch.fcgi?db=pubmed&retmode=json&rettype=count&term=" + encodeURIComponent(i.q));
+    i.count = Number((await r.json()).esearchresult.count) || 0;
+  } catch { i.count = 0; }
+  await new Promise((ok) => setTimeout(ok, 400));
+}
+
 const cards = items.map((i) => `
     <article class="card" data-evidence="${i.evidence}" data-risk="${i.risk}">
       <h2>${esc(i.name)}</h2>
@@ -79,7 +89,7 @@ const cards = items.map((i) => `
       <p class="verdict">${esc(i.verdict)}</p>
       <p>${esc(i.detail)}</p>
       <p class="watch"><strong>Watch out:</strong> ${esc(i.watch)}</p>
-      <p class="src"><a href="${pubmed(i.q)}" rel="noopener">Read the research on PubMed</a></p>
+      <p class="src"><a href="${pubmed(i.q)}" rel="noopener">Read the research on PubMed</a>${i.count ? ` · ${i.count.toLocaleString("en")} papers match, checked ${checked}` : ""}</p>
     </article>`).join("\n");
 
 const faq = {
