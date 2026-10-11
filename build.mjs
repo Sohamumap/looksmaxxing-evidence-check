@@ -1,7 +1,6 @@
-// Builds index.html from the data below.
-// Deliberate choice: every card and the FAQ schema are written into the HTML at build time,
-// so search engines and AI crawlers (which often don't run JavaScript) can read all of it.
-// JavaScript is only used for the filter buttons.
+// Builds the home page and one page per practice from the data below.
+// Everything is written into the HTML at build time, with no JavaScript on the page,
+// so search engines and AI crawlers can read all of it.
 import { writeFileSync, mkdirSync } from "node:fs";
 
 const items = [
@@ -93,7 +92,6 @@ const studies = {
   "Home microneedling for hair loss": [23960389, "Dhurat et al., International Journal of Trichology, 2013. A randomized evaluator blinded study of effect of microneedling in androgenetic alopecia: a pilot study.", "A pilot study at one clinic, done by clinicians rather than at home."],
   "Steroids and SARMs for looks": [28533317, "Baggish et al., Circulation, 2017. Cardiovascular toxicity of illicit anabolic-androgenic steroid use.", "An observational study of long-term users, so it shows a link, not proof of cause."],
 };
-const studyHtml = (i) => i.study ? `<p class="watch"><strong>Start with this study:</strong> <a href="https://pubmed.ncbi.nlm.nih.gov/${i.study[0]}/" rel="noopener">${esc(i.study[1])}</a> <em>Its limit:</em> ${esc(i.study[2])}</p>` : `<p class="watch"><strong>No single good study to point to.</strong> That absence is part of the grade.</p>`;
 for (const i of items) {
   i.study = studies[i.name];
   [i.cat, i.change] = extra[i.name];
@@ -115,30 +113,83 @@ for (const i of items) {
   await new Promise((ok) => setTimeout(ok, 400));
 }
 
-const cards = items.map((i) => `
-    <article class="card" id="${i.id}" data-evidence="${i.evidence}" data-risk="${i.risk}" data-cat="${i.cat}">
-      <h2><a href="#${i.id}" title="Link to this card">${esc(i.name)}</a></h2>
-      <p class="tags"><span class="tag e-${i.evidence}">${label[i.evidence]}</span><span class="tag r-${i.risk}">${riskLabel[i.risk]}</span></p>
-      <p class="verdict">${esc(i.verdict)}</p>
-      <p>${esc(i.detail)}</p>
-      <p class="watch"><strong>Watch out:</strong> ${esc(i.watch)}</p>
-      <p class="watch"><strong>What would change this grade:</strong> ${esc(i.change)}</p>
-      ${studyHtml(i)}
-      <p class="src"><a href="${i.id}/">Full page</a> · <a href="${pubmed(i.q)}" rel="noopener">Search PubMed yourself</a>${i.count ? ` · ${i.count.toLocaleString("en")} papers match · search refreshed ${checked}` : ""}</p>
-    </article>`).join("\n");
+const base = "https://sohamumap.github.io/looksmaxxing-evidence-check/";
 
-const faq = {
-  "@context": "https://schema.org",
-  "@type": "FAQPage",
-  mainEntity: items.map((i) => ({
-    "@type": "Question",
-    name: `Does ${i.name.toLowerCase()} work, and is it safe?`,
-    acceptedAnswer: { "@type": "Answer", text: `${label[i.evidence]}, ${riskLabel[i.risk].toLowerCase()}. ${i.verdict} ${i.detail} Watch out: ${i.watch}` },
-  })),
-};
+// The home page is a short, scannable list grouped by verdict. The detail lives on one page per practice.
+const groups = [
+  { key: "worth", title: "Worth doing", intro: "Good evidence, and little that can go wrong." },
+  { key: "tradeoff", title: "Works, with trade-offs", intro: "Good evidence, but side effects or a prescription are involved. Read the page before you start." },
+  { key: "unproven", title: "Unproven", intro: "Little or no good evidence. The usual cost is time, money or false hope." },
+  { key: "danger", title: "Dangerous", intro: "The harm is real and can be permanent." },
+];
+const groupOf = (i) => i.risk === "high" ? "danger" : i.evidence !== "strong" ? "unproven" : i.risk === "low" ? "worth" : "tradeoff";
+const tags = (i) => `<p class="tags"><span class="tag e-${i.evidence}">${label[i.evidence]}</span><span class="tag r-${i.risk}">${riskLabel[i.risk]}</span></p>`;
+
+const sections = groups.map((g) => `
+  <section class="group g-${g.key}">
+    <h2>${g.title}</h2>
+    <p class="intro">${g.intro}</p>
+    <ul class="rows">${items.filter((i) => groupOf(i) === g.key).map((i) => `
+      <li id="${i.id}">
+        <a class="name" href="${i.id}/">${esc(i.name)}</a>
+        ${tags(i)}
+        <p class="verdict">${esc(i.verdict)}</p>
+      </li>`).join("")}
+    </ul>
+  </section>`).join("\n");
+
+const css = `
+:root{--bg:#f6f4ef;--ink:#16181c;--mute:#5c6470;--card:#fff;--line:#dedad0;--good:#1f6f4a;--mid:#8a6100;--bad:#a3261d;--none:#55595f}
+@media (prefers-color-scheme:dark){:root{--bg:#111316;--ink:#eceae4;--mute:#a0a6b0;--card:#1a1d21;--line:#2c3036;--good:#6fcf9b;--mid:#e3b34d;--bad:#ff8a7d;--none:#b0b5bc}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:18px/1.6 Georgia,"Times New Roman",serif}
+main{max-width:720px;margin:0 auto;padding:48px 20px 72px}
+a{color:inherit}
+h1{font-size:clamp(30px,5.5vw,44px);line-height:1.12;margin:0 0 16px;letter-spacing:-.01em}
+.lede{font-size:20px;color:var(--mute);margin:0 0 32px}
+.doodle{width:88px;height:52px;display:block;margin:0 0 12px}
+.ui,.tags,.intro,.legend,.crumb,.meta,summary,.next{font-family:system-ui,-apple-system,"Segoe UI",sans-serif}
+.legend{display:grid;grid-template-columns:1fr 1fr;gap:24px;margin:0 0 8px;padding:20px 0;border-top:1px solid var(--line);border-bottom:1px solid var(--line);font-size:15px;line-height:1.5;color:var(--mute)}
+.legend strong{display:block;color:var(--ink);font-size:13px;text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px}
+.group{margin-top:48px}
+.group h2{font-size:26px;line-height:1.2;margin:0 0 4px}
+.intro{font-size:15px;color:var(--mute);margin:0 0 12px}
+.rows{list-style:none;margin:0;padding:0 0 0 18px;border-left:3px solid var(--none)}
+.g-worth .rows{border-color:var(--good)}.g-tradeoff .rows{border-color:var(--mid)}.g-danger .rows{border-color:var(--bad)}
+.rows li{display:grid;grid-template-columns:1fr auto;gap:2px 16px;padding:16px 0;border-top:1px solid var(--line)}
+.rows li:first-child{border-top:0}
+.name{font-size:20px;font-weight:700;text-decoration:none;line-height:1.3}
+.name:hover{text-decoration:underline}
+.rows .verdict{grid-column:1;margin:0;font-size:16px;line-height:1.5;color:var(--mute)}
+.rows .tags{grid-column:2;grid-row:1 / span 2;flex-direction:column;align-items:flex-end;margin:4px 0 0}
+.tags{display:flex;flex-wrap:wrap;gap:6px;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.05em;margin:0 0 24px}
+.tag{padding:3px 8px;border:1px solid currentColor;border-radius:4px;white-space:nowrap}
+.e-strong,.r-low{color:var(--good)}.e-mixed,.r-medium{color:var(--mid)}.e-weak,.e-none{color:var(--none)}.r-high{color:var(--bad)}
+footer{margin-top:64px;font-size:16px;color:var(--mute)}
+details{border-top:1px solid var(--line)}
+details:last-of-type{border-bottom:1px solid var(--line)}
+summary{cursor:pointer;padding:14px 0;font-size:15px;font-weight:600;color:var(--ink)}
+details p{margin:0 0 16px}
+.meta{font-size:13px;margin-top:20px}
+.crumb{font-size:14px;margin:0 0 24px;color:var(--mute)}
+article h2{font:600 13px/1.4 system-ui,-apple-system,"Segoe UI",sans-serif;text-transform:uppercase;letter-spacing:.06em;color:var(--mute);margin:36px 0 6px}
+article p{margin:0 0 12px}
+.answer{font-size:21px;line-height:1.45;font-weight:700;margin:0 0 8px;padding:16px 20px;background:var(--card);border:1px solid var(--line);border-left:4px solid var(--ink);border-radius:6px}
+.limit{color:var(--mute);font-size:16px}
+.next{display:flex;justify-content:space-between;gap:16px;margin-top:48px;padding-top:20px;border-top:1px solid var(--line);font-size:15px}
+@media (max-width:560px){.legend{grid-template-columns:1fr;gap:14px}.rows li{grid-template-columns:1fr}.rows .tags{grid-column:1;grid-row:auto;flex-direction:row;align-items:center;margin:4px 0}}
+`;
+
+const doodle = `<svg class="doodle" viewBox="0 0 120 70" role="img" aria-label="Hand-drawn balance scale"><g fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M60 8c.6 16-.4 34 .3 50M44 60c11-2.4 22-2 33 .2M19 21c27-5.5 55-3.4 83 3.6"/><path d="M19 21c-3.4 7-6.6 13.6-9 21 6.4 5.6 14 5 19.6-.5-2.800-7.300-6.400-14-10.600-20.500M102 24.600c-3 7.400-5.800 14-8 21.400 6 5 13.400 4.600 18.600-1-2.600-7-6-13.600-10.600-20.400"/><circle cx="60" cy="7" r="2.600"/></g></svg>`;
 
 const title = "Does it work? 12 looksmaxxing practices graded by evidence and risk";
 const desc = "Sunscreen, minoxidil, mewing, bonesmashing and 8 more looksmaxxing practices, each graded on how good the evidence is and how risky it is. No hype.";
+const list = {
+  "@context": "https://schema.org",
+  "@type": "ItemList",
+  name: title,
+  itemListElement: items.map((i, n) => ({ "@type": "ListItem", position: n + 1, name: i.name, url: base + i.id + "/" })),
+};
 
 const html = `<!doctype html>
 <html lang="en">
@@ -147,96 +198,61 @@ const html = `<!doctype html>
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>${title}</title>
 <meta name="description" content="${desc}">
+<link rel="canonical" href="${base}">
 <meta property="og:type" content="article">
 <meta property="og:title" content="${title}">
 <meta property="og:description" content="${desc}">
 <meta name="twitter:card" content="summary">
-<script type="application/ld+json">${JSON.stringify(faq)}</script>
-<style>
-:root{--bg:#f6f4ef;--ink:#16181c;--mute:#5c6470;--card:#fff;--line:#dedad0;--good:#1f6f4a;--mid:#8a6100;--bad:#a3261d;--none:#55595f}
-@media (prefers-color-scheme:dark){:root{--bg:#111316;--ink:#eceae4;--mute:#a0a6b0;--card:#1a1d21;--line:#2c3036;--good:#6fcf9b;--mid:#e3b34d;--bad:#ff8a7d;--none:#b0b5bc}}
-*{box-sizing:border-box}
-body{margin:0;background:var(--bg);color:var(--ink);font:17px/1.55 Georgia,"Times New Roman",serif}
-main{max-width:980px;margin:0 auto;padding:32px 16px 64px}
-h1{font-size:clamp(28px,5vw,44px);line-height:1.1;margin:0 0 12px;letter-spacing:-.01em}
-.lede{color:var(--mute);max-width:62ch;margin:0 0 24px}
-.filters{display:flex;flex-wrap:wrap;gap:8px;margin:0 0 8px;font-family:system-ui,sans-serif}
-.filters button{font:inherit;font-size:14px;padding:8px 14px;border:1px solid var(--line);background:var(--card);color:var(--ink);border-radius:999px;cursor:pointer}
-.filters button[aria-pressed=true]{background:var(--ink);color:var(--bg);border-color:var(--ink)}
-.count{font:14px system-ui,sans-serif;color:var(--mute);margin:0 0 20px}
-.grid{display:grid;gap:16px;grid-template-columns:repeat(auto-fill,minmax(290px,1fr))}
-.card{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:20px}
-.card[hidden]{display:none}
-.card h2{font-size:21px;line-height:1.2;margin:0 0 10px}
-.card h2 a{text-decoration:none}
-.doodle{width:96px;height:56px;color:var(--ink);display:block;margin:0 0 8px}
-.card:target{outline:2px solid var(--ink)}
-.card p{margin:0 0 10px}
-.tags{display:flex;flex-wrap:wrap;gap:6px;font:600 12px system-ui,sans-serif;text-transform:uppercase;letter-spacing:.04em}
-.tag{padding:3px 8px;border:1px solid currentColor;border-radius:4px}
-.e-strong,.r-low{color:var(--good)}.e-mixed,.r-medium{color:var(--mid)}.e-weak,.e-none{color:var(--none)}.r-high{color:var(--bad)}
-.verdict{font-weight:700}
-.watch{font-size:15px;color:var(--mute)}
-.src{font:14px system-ui,sans-serif;margin:0}
-a{color:inherit}
-footer{margin-top:40px;padding-top:20px;border-top:1px solid var(--line);font-size:15px;color:var(--mute);max-width:70ch}
-</style>
+<script type="application/ld+json">${JSON.stringify(list)}</script>
+<style>${css}</style>
 </head>
 <body>
 <main>
-  <svg class="doodle" viewBox="0 0 120 70" role="img" aria-label="Hand-drawn balance scale weighing evidence against risk"><g fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M60 8c.6 16-.4 34 .3 50M44 60c11-2.4 22-2 33 .2M19 21c27-5.5 55-3.4 83 3.6"/><path d="M19 21c-3.4 7-6.6 13.6-9 21 6.4 5.6 14 5 19.600-.5-2.800-7.300-6.400-14-10.600-20.500M102 24.600c-3 7.400-5.800 14-8 21.400 6 5 13.400 4.600 18.600-1-2.600-7-6-13.600-10.600-20.400"/><circle cx="60" cy="7" r="2.600"/></g></svg>
+  ${doodle}
   <h1>Does it work? And what could it cost you?</h1>
-  <p class="lede">Twelve things men try in order to look better, each given two separate grades: how good the evidence is, and how risky it is. They are separate on purpose. Steroids work and are dangerous. Mewing is safe and does very little.</p>
-  <div class="filters" role="group" aria-label="Filter the list">
-    <button data-f="all" aria-pressed="true">All</button>
-    <button data-f="worth" aria-pressed="false">Worth doing</button>
-    <button data-f="doctor" aria-pressed="false">Works, with trade-offs</button>
-    <button data-f="unproven" aria-pressed="false">Unproven</button>
-    <button data-f="danger" aria-pressed="false">Dangerous</button>
+  <p class="lede">Twelve things men try in order to look better, sorted from worth doing to dangerous.</p>
+  <div class="legend">
+    <p><strong>Evidence</strong>How good the research is. Strong means repeated controlled trials in people.</p>
+    <p><strong>Risk</strong>How badly it can go wrong, and whether the damage can be undone.</p>
   </div>
-  <div class="filters" role="group" aria-label="Filter by topic">
-    <button data-c="all" aria-pressed="true">Any topic</button>
-    <button data-c="skin" aria-pressed="false">Skin</button>
-    <button data-c="hair" aria-pressed="false">Hair</button>
-    <button data-c="fitness" aria-pressed="false">Fitness</button>
-    <button data-c="face" aria-pressed="false">Face and teeth</button>
-  </div>
-  <p class="count" id="count" aria-live="polite">Showing all ${items.length}.</p>
-  <div class="grid">${cards}
-  </div>
+${sections}
   <footer>
-    <p><strong>How the grades work.</strong> "Strong" means repeated controlled trials in people. "Mixed" means a few small or inconsistent trials. "Weak" and "none" mean the claim rests on theory, anecdotes or before-and-after photos. Risk is graded on how badly it can go wrong and whether the damage can be undone.</p>
-    <p><strong>Refreshed is not the same as reviewed.</strong> A script re-runs each PubMed search every week and updates the paper count. That number shows how much research exists, not how good it is. The grades themselves were written once, on 11 October 2026, and are not re-checked automatically. No doctor has reviewed them.</p>
-    <p><strong>How this was built.</strong> Made by Soham Umap with Claude Code in a 45-minute window, as a demo for looksmaxxing.guide. The AI wrote the code and the first draft of every card. My calls: keep evidence and risk as two separate grades, pull live numbers from a free public source instead of a paid scraper, and name a study only where its PubMed record was confirmed. The eight named studies were checked to exist and match their titles. They were not all read in full for this build.</p>
-    <p>This page is general information, not medical advice.</p>
+    <details>
+      <summary>Why two grades instead of one score</summary>
+      <p>Because they come apart. Steroids build muscle and can wreck your heart. Mewing is harmless and does very little. One score would hide both facts.</p>
+    </details>
+    <details>
+      <summary>How the grades were decided</summary>
+      <p>"Strong" means repeated controlled trials in people. "Mixed" means a few small or inconsistent trials. "Weak" and "none" mean the claim rests on theory, anecdotes or before-and-after photos. Each practice has its own page with a named study where a good one exists, that study's limit, and what new evidence would change the grade.</p>
+    </details>
+    <details>
+      <summary>Refreshed is not the same as reviewed</summary>
+      <p>A script re-runs each PubMed search every week and updates the paper count on each page. That number shows how much research exists, not how good it is. The grades were written once, on 11 October 2026, and are not re-checked automatically. No doctor has reviewed them.</p>
+    </details>
+    <details>
+      <summary>How this was built</summary>
+      <p>Made by Soham Umap with Claude Code as a demo for looksmaxxing.guide, in a 45-minute test window. The AI wrote the code and the first draft of every entry. My calls: keep evidence and risk as two separate grades, pull live numbers from a free public source instead of a paid scraper, and name a study only where its PubMed record was confirmed. The eight named studies were checked to exist and match their titles. They were not all read in full.</p>
+      <p>The layout was simplified later the same day, after the test was submitted, because the first version was cluttered. The entries and grades did not change.</p>
+    </details>
+    <p class="meta">General information, not medical advice.</p>
   </footer>
 </main>
-<script>
-const rules={all:()=>true,
-  worth:c=>c.dataset.evidence==="strong"&&c.dataset.risk==="low",
-  doctor:c=>c.dataset.evidence==="strong"&&c.dataset.risk==="medium",
-  unproven:c=>["mixed","weak","none"].includes(c.dataset.evidence)&&c.dataset.risk!=="high",
-  danger:c=>c.dataset.risk==="high"};
-const cards=[...document.querySelectorAll(".card")],btns=[...document.querySelectorAll(".filters button")],count=document.getElementById("count");
-const state={f:"all",c:"all"};
-btns.forEach(b=>b.addEventListener("click",()=>{
-  const k=b.dataset.f?"f":"c";state[k]=b.dataset[k];
-  [...b.parentNode.children].forEach(x=>x.setAttribute("aria-pressed",x===b));
-  let n=0;cards.forEach(c=>{const on=rules[state.f](c)&&(state.c==="all"||c.dataset.cat===state.c);c.hidden=!on;if(on)n++});
-  count.textContent=n===cards.length?"Showing all "+n+".":"Showing "+n+" of "+cards.length+".";
-}));
-</script>
 </body>
 </html>
 `;
 writeFileSync(new URL("./index.html", import.meta.url), html);
 
 // One page per practice, so each question has its own address for search.
-const css = html.split("<style>")[1].split("</style>")[0];
-for (const i of items) {
-  const q = `Does ${i.name.replace(/\s*\(.*?\)/g, "").toLowerCase()} work, and is it safe?`;
+items.forEach((i, n) => {
+  const short = i.name.replace(/\s*\(.*?\)/g, "");
+  const q = `Does ${short[0].toLowerCase() + short.slice(1)} work, and is it safe?`;
   const answer = `${label[i.evidence]}, ${riskLabel[i.risk].toLowerCase()}. ${i.verdict}`;
-  const ld = { "@context": "https://schema.org", "@type": "FAQPage", mainEntity: [{ "@type": "Question", name: q, acceptedAnswer: { "@type": "Answer", text: `${answer} ${i.detail} Watch out: ${i.watch}` } }] };
+  const ld = { "@context": "https://schema.org", "@type": "FAQPage", mainEntity: [{ "@type": "Question", name: q, acceptedAnswer: { "@type": "Answer", text: `${answer} ${i.detail} What can go wrong: ${i.watch}` } }] };
+  const next = items[(n + 1) % items.length];
+  const source = i.study
+    ? `<p><a href="https://pubmed.ncbi.nlm.nih.gov/${i.study[0]}/" rel="noopener">${esc(i.study[1])}</a></p>
+    <p class="limit">Its limit: ${esc(i.study[2])}</p>`
+    : `<p>There is no single good study to point to. That absence is part of the grade.</p>`;
   const page = `<!doctype html>
 <html lang="en">
 <head>
@@ -244,27 +260,30 @@ for (const i of items) {
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>${esc(q)}</title>
 <meta name="description" content="${esc(answer)}">
+<link rel="canonical" href="${base}${i.id}/">
 <script type="application/ld+json">${JSON.stringify(ld)}</script>
-<style>${css}main{max-width:680px}</style>
+<style>${css}</style>
 </head>
 <body>
 <main>
-  <p class="src"><a href="../">All 12 practices</a></p>
-  <h1>${esc(q)}</h1>
-  <p class="tags"><span class="tag e-${i.evidence}">${label[i.evidence]}</span><span class="tag r-${i.risk}">${riskLabel[i.risk]}</span></p>
-  <h2>Short answer</h2>
-  <p class="verdict">${esc(i.verdict)}</p>
-  <h2>What the evidence says</h2>
-  <p>${esc(i.detail)}</p>
-  <h2>What can go wrong</h2>
-  <p>${esc(i.watch)}</p>
-  <h2>What would change this grade</h2>
-  <p>${esc(i.change)}</p>
-  <h2>Sources</h2>
-  ${studyHtml(i)}
-  <p><a href="${pubmed(i.q)}" rel="noopener">Search PubMed yourself</a>${i.count ? ` (${i.count.toLocaleString("en")} papers match)` : ""}</p>
+  <p class="crumb"><a href="../">All 12 practices</a></p>
+  <article>
+    <h1>${esc(q)}</h1>
+    ${tags(i)}
+    <p class="answer">${esc(i.verdict)}</p>
+    <h2>What the evidence says</h2>
+    <p>${esc(i.detail)}</p>
+    <h2>What can go wrong</h2>
+    <p>${esc(i.watch)}</p>
+    <h2>What would change this grade</h2>
+    <p>${esc(i.change)}</p>
+    <h2>Where to start reading</h2>
+    ${source}
+    <p class="limit"><a href="${pubmed(i.q)}" rel="noopener">Search PubMed yourself</a>${i.count ? `. ${i.count.toLocaleString("en")} papers match this search, which shows how much research exists, not how good it is.` : "."}</p>
+  </article>
+  <p class="next"><a href="../">All 12 practices</a><a href="../${next.id}/">Next: ${esc(next.name)}</a></p>
   <footer>
-    <p>Grade written 11 October 2026. Search refreshed ${checked}. Not reviewed by a doctor. General information, not medical advice.</p>
+    <p class="meta">Grade written 11 October 2026. Search refreshed ${checked}. Not reviewed by a doctor. General information, not medical advice.</p>
   </footer>
 </main>
 </body>
@@ -272,5 +291,5 @@ for (const i of items) {
 `;
   mkdirSync(new URL(`./${i.id}/`, import.meta.url), { recursive: true });
   writeFileSync(new URL(`./${i.id}/index.html`, import.meta.url), page);
-}
-console.log("built index.html with", items.length, "items");
+});
+console.log("built home page and", items.length, "practice pages");
