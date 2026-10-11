@@ -67,6 +67,26 @@ const items = [
     q: "facial fracture blunt trauma complications" },
 ];
 
+// Topic, and what new evidence would change each grade.
+const extra = {
+  "Daily sunscreen (SPF 30+)": ["skin", "A long trial finding no difference in skin ageing between daily and occasional users."],
+  "Topical retinoids (tretinoin, adapalene)": ["skin", "The benefit is settled. The risk grade would drop if a gentler form matched tretinoin in head-to-head trials."],
+  "Topical minoxidil": ["hair", "Long trials showing the gains last after you stop. Today they do not."],
+  "Finasteride": ["hair", "Better long-term data on how often side effects continue after stopping. That is the real open question."],
+  "Lifting weights and eating enough protein": ["fitness", "Nothing realistic. This is as settled as it gets."],
+  "Creatine monohydrate": ["fitness", "Long-term safety data in teenagers, who are under-studied."],
+  "Peroxide teeth whitening": ["face", "Evidence of lasting enamel damage at normal doses would raise the risk grade."],
+  "Home microneedling for hair loss": ["hair", "Larger trials using home rollers, not clinic devices, that also report infection rates."],
+  "Mewing (tongue posture)": ["face", "One controlled trial in adults with before-and-after scans. None exists yet."],
+  "Hard chewing and jaw trainers": ["face", "A trial that measures jawbone, not just muscle, and tracks jaw joint pain."],
+  "Steroids and SARMs for looks": ["fitness", "Nothing on the harm. The open question is only how often it happens, and at what dose."],
+  "Bonesmashing": ["face", "Nothing plausible. The claimed mechanism does not match how bone heals."],
+};
+for (const i of items) {
+  [i.cat, i.change] = extra[i.name];
+  i.id = i.name.toLowerCase().replace(/\(.*?\)/g, "").trim().replace(/[^a-z0-9]+/g, "-");
+}
+
 const label = { strong: "Strong evidence", mixed: "Mixed evidence", weak: "Weak evidence", none: "No evidence" };
 const riskLabel = { low: "Low risk", medium: "Medium risk", high: "High risk" };
 const esc = (s) => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/"/g, "&quot;");
@@ -83,13 +103,14 @@ for (const i of items) {
 }
 
 const cards = items.map((i) => `
-    <article class="card" data-evidence="${i.evidence}" data-risk="${i.risk}">
-      <h2>${esc(i.name)}</h2>
+    <article class="card" id="${i.id}" data-evidence="${i.evidence}" data-risk="${i.risk}" data-cat="${i.cat}">
+      <h2><a href="#${i.id}" title="Link to this card">${esc(i.name)}</a></h2>
       <p class="tags"><span class="tag e-${i.evidence}">${label[i.evidence]}</span><span class="tag r-${i.risk}">${riskLabel[i.risk]}</span></p>
       <p class="verdict">${esc(i.verdict)}</p>
       <p>${esc(i.detail)}</p>
       <p class="watch"><strong>Watch out:</strong> ${esc(i.watch)}</p>
-      <p class="src"><a href="${pubmed(i.q)}" rel="noopener">Read the research on PubMed</a>${i.count ? ` · ${i.count.toLocaleString("en")} papers match, checked ${checked}` : ""}</p>
+      <p class="watch"><strong>What would change this grade:</strong> ${esc(i.change)}</p>
+      <p class="src"><a href="${pubmed(i.q)}" rel="noopener">Search PubMed yourself</a>${i.count ? ` · ${i.count.toLocaleString("en")} papers match · search refreshed ${checked}` : ""}</p>
     </article>`).join("\n");
 
 const faq = {
@@ -133,6 +154,8 @@ h1{font-size:clamp(28px,5vw,44px);line-height:1.1;margin:0 0 12px;letter-spacing
 .card{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:20px}
 .card[hidden]{display:none}
 .card h2{font-size:21px;line-height:1.2;margin:0 0 10px}
+.card h2 a{text-decoration:none}
+.card:target{outline:2px solid var(--ink)}
 .card p{margin:0 0 10px}
 .tags{display:flex;flex-wrap:wrap;gap:6px;font:600 12px system-ui,sans-serif;text-transform:uppercase;letter-spacing:.04em}
 .tag{padding:3px 8px;border:1px solid currentColor;border-radius:4px}
@@ -155,12 +178,21 @@ footer{margin-top:40px;padding-top:20px;border-top:1px solid var(--line);font-si
     <button data-f="unproven" aria-pressed="false">Unproven</button>
     <button data-f="danger" aria-pressed="false">Dangerous</button>
   </div>
+  <div class="filters" role="group" aria-label="Filter by topic">
+    <button data-c="all" aria-pressed="true">Any topic</button>
+    <button data-c="skin" aria-pressed="false">Skin</button>
+    <button data-c="hair" aria-pressed="false">Hair</button>
+    <button data-c="fitness" aria-pressed="false">Fitness</button>
+    <button data-c="face" aria-pressed="false">Face and teeth</button>
+  </div>
   <p class="count" id="count" aria-live="polite">Showing all ${items.length}.</p>
   <div class="grid">${cards}
   </div>
   <footer>
     <p><strong>How the grades work.</strong> "Strong" means repeated controlled trials in people. "Mixed" means a few small or inconsistent trials. "Weak" and "none" mean the claim rests on theory, anecdotes or before-and-after photos. Risk is graded on how badly it can go wrong and whether the damage can be undone.</p>
-    <p>This page is general information, not medical advice. Each card links to a PubMed search so you can read the studies yourself. Demo built for looksmaxxing.guide.</p>
+    <p><strong>Refreshed is not the same as reviewed.</strong> A script re-runs each PubMed search every week and updates the paper count. That number shows how much research exists, not how good it is. The grades themselves were written once, on 11 October 2026, and are not re-checked automatically. No doctor has reviewed them.</p>
+    <p><strong>How this was built.</strong> Made by Soham Umap with Claude Code in a 45-minute window, as a demo for looksmaxxing.guide. The AI wrote the code and the first draft of every card. My calls: keep evidence and risk as two separate grades, pull live numbers from a free public source instead of a paid scraper, and link to searches rather than invent citations I had no time to read.</p>
+    <p>This page is general information, not medical advice.</p>
   </footer>
 </main>
 <script>
@@ -170,10 +202,12 @@ const rules={all:()=>true,
   unproven:c=>["mixed","weak","none"].includes(c.dataset.evidence)&&c.dataset.risk!=="high",
   danger:c=>c.dataset.risk==="high"};
 const cards=[...document.querySelectorAll(".card")],btns=[...document.querySelectorAll(".filters button")],count=document.getElementById("count");
+const state={f:"all",c:"all"};
 btns.forEach(b=>b.addEventListener("click",()=>{
-  btns.forEach(x=>x.setAttribute("aria-pressed",x===b));
-  let n=0;cards.forEach(c=>{const on=rules[b.dataset.f](c);c.hidden=!on;if(on)n++});
-  count.textContent=b.dataset.f==="all"?"Showing all "+n+".":"Showing "+n+" of "+cards.length+".";
+  const k=b.dataset.f?"f":"c";state[k]=b.dataset[k];
+  [...b.parentNode.children].forEach(x=>x.setAttribute("aria-pressed",x===b));
+  let n=0;cards.forEach(c=>{const on=rules[state.f](c)&&(state.c==="all"||c.dataset.cat===state.c);c.hidden=!on;if(on)n++});
+  count.textContent=n===cards.length?"Showing all "+n+".":"Showing "+n+" of "+cards.length+".";
 }));
 </script>
 </body>
