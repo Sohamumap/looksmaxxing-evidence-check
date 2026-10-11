@@ -2,7 +2,7 @@
 // Deliberate choice: every card and the FAQ schema are written into the HTML at build time,
 // so search engines and AI crawlers (which often don't run JavaScript) can read all of it.
 // JavaScript is only used for the filter buttons.
-import { writeFileSync } from "node:fs";
+import { writeFileSync, mkdirSync } from "node:fs";
 
 const items = [
   { name: "Daily sunscreen (SPF 30+)", evidence: "strong", risk: "low",
@@ -82,7 +82,20 @@ const extra = {
   "Steroids and SARMs for looks": ["fitness", "Nothing on the harm. The open question is only how often it happens, and at what dose."],
   "Bonesmashing": ["face", "Nothing plausible. The claimed mechanism does not match how bone heals."],
 };
+// One named study per card where a well-known one exists. Titles and ids were confirmed against PubMed's records.
+const studies = {
+  "Daily sunscreen (SPF 30+)": [23732711, "Hughes et al., Annals of Internal Medicine, 2013. Sunscreen and prevention of skin aging: a randomized trial.", "Adults under 55 in sunny Queensland, Australia. Results may differ for other skin types and climates."],
+  "Topical retinoids (tretinoin, adapalene)": [18046911, "Mukherjee et al., Clinical Interventions in Aging, 2006. Retinoids in the treatment of skin aging: an overview of clinical efficacy and safety.", "A review article from 2006, not a new trial."],
+  "Topical minoxidil": [12196747, "Olsen et al., Journal of the American Academy of Dermatology, 2002. A randomized clinical trial of 5% topical minoxidil versus 2% topical minoxidil and placebo.", "It ran for 48 weeks, so it does not show what happens over years."],
+  "Finasteride": [9777765, "Kaufman et al., Journal of the American Academy of Dermatology, 1998. Finasteride in the treatment of men with androgenetic alopecia.", "Men aged 18 to 41 with mild to moderate hair loss, in a study funded by the drug's maker."],
+  "Lifting weights and eating enough protein": [28698222, "Morton et al., British Journal of Sports Medicine, 2018. A systematic review and meta-analysis of protein supplementation and resistance training gains.", "It pools many trials of different quality, and it is about protein supplements on top of training, not training alone."],
+  "Creatine monohydrate": [28615996, "Kreider et al., Journal of the International Society of Sports Nutrition, 2017. Position stand: safety and efficacy of creatine supplementation.", "A position statement by a sports nutrition society, not a single trial."],
+  "Home microneedling for hair loss": [23960389, "Dhurat et al., International Journal of Trichology, 2013. A randomized evaluator blinded study of effect of microneedling in androgenetic alopecia: a pilot study.", "A pilot study at one clinic, done by clinicians rather than at home."],
+  "Steroids and SARMs for looks": [28533317, "Baggish et al., Circulation, 2017. Cardiovascular toxicity of illicit anabolic-androgenic steroid use.", "An observational study of long-term users, so it shows a link, not proof of cause."],
+};
+const studyHtml = (i) => i.study ? `<p class="watch"><strong>Start with this study:</strong> <a href="https://pubmed.ncbi.nlm.nih.gov/${i.study[0]}/" rel="noopener">${esc(i.study[1])}</a> <em>Its limit:</em> ${esc(i.study[2])}</p>` : `<p class="watch"><strong>No single good study to point to.</strong> That absence is part of the grade.</p>`;
 for (const i of items) {
+  i.study = studies[i.name];
   [i.cat, i.change] = extra[i.name];
   i.id = i.name.toLowerCase().replace(/\(.*?\)/g, "").trim().replace(/[^a-z0-9]+/g, "-");
 }
@@ -110,7 +123,8 @@ const cards = items.map((i) => `
       <p>${esc(i.detail)}</p>
       <p class="watch"><strong>Watch out:</strong> ${esc(i.watch)}</p>
       <p class="watch"><strong>What would change this grade:</strong> ${esc(i.change)}</p>
-      <p class="src"><a href="${pubmed(i.q)}" rel="noopener">Search PubMed yourself</a>${i.count ? ` · ${i.count.toLocaleString("en")} papers match · search refreshed ${checked}` : ""}</p>
+      ${studyHtml(i)}
+      <p class="src"><a href="${i.id}/">Full page</a> · <a href="${pubmed(i.q)}" rel="noopener">Search PubMed yourself</a>${i.count ? ` · ${i.count.toLocaleString("en")} papers match · search refreshed ${checked}` : ""}</p>
     </article>`).join("\n");
 
 const faq = {
@@ -155,6 +169,7 @@ h1{font-size:clamp(28px,5vw,44px);line-height:1.1;margin:0 0 12px;letter-spacing
 .card[hidden]{display:none}
 .card h2{font-size:21px;line-height:1.2;margin:0 0 10px}
 .card h2 a{text-decoration:none}
+.doodle{width:96px;height:56px;color:var(--ink);display:block;margin:0 0 8px}
 .card:target{outline:2px solid var(--ink)}
 .card p{margin:0 0 10px}
 .tags{display:flex;flex-wrap:wrap;gap:6px;font:600 12px system-ui,sans-serif;text-transform:uppercase;letter-spacing:.04em}
@@ -169,6 +184,7 @@ footer{margin-top:40px;padding-top:20px;border-top:1px solid var(--line);font-si
 </head>
 <body>
 <main>
+  <svg class="doodle" viewBox="0 0 120 70" role="img" aria-label="Hand-drawn balance scale weighing evidence against risk"><g fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M60 8c.6 16-.4 34 .3 50M44 60c11-2.4 22-2 33 .2M19 21c27-5.5 55-3.4 83 3.6"/><path d="M19 21c-3.4 7-6.6 13.6-9 21 6.4 5.6 14 5 19.600-.5-2.800-7.300-6.400-14-10.600-20.500M102 24.600c-3 7.400-5.800 14-8 21.400 6 5 13.400 4.600 18.600-1-2.600-7-6-13.600-10.600-20.400"/><circle cx="60" cy="7" r="2.600"/></g></svg>
   <h1>Does it work? And what could it cost you?</h1>
   <p class="lede">Twelve things men try in order to look better, each given two separate grades: how good the evidence is, and how risky it is. They are separate on purpose. Steroids work and are dangerous. Mewing is safe and does very little.</p>
   <div class="filters" role="group" aria-label="Filter the list">
@@ -191,7 +207,7 @@ footer{margin-top:40px;padding-top:20px;border-top:1px solid var(--line);font-si
   <footer>
     <p><strong>How the grades work.</strong> "Strong" means repeated controlled trials in people. "Mixed" means a few small or inconsistent trials. "Weak" and "none" mean the claim rests on theory, anecdotes or before-and-after photos. Risk is graded on how badly it can go wrong and whether the damage can be undone.</p>
     <p><strong>Refreshed is not the same as reviewed.</strong> A script re-runs each PubMed search every week and updates the paper count. That number shows how much research exists, not how good it is. The grades themselves were written once, on 11 October 2026, and are not re-checked automatically. No doctor has reviewed them.</p>
-    <p><strong>How this was built.</strong> Made by Soham Umap with Claude Code in a 45-minute window, as a demo for looksmaxxing.guide. The AI wrote the code and the first draft of every card. My calls: keep evidence and risk as two separate grades, pull live numbers from a free public source instead of a paid scraper, and link to searches rather than invent citations I had no time to read.</p>
+    <p><strong>How this was built.</strong> Made by Soham Umap with Claude Code in a 45-minute window, as a demo for looksmaxxing.guide. The AI wrote the code and the first draft of every card. My calls: keep evidence and risk as two separate grades, pull live numbers from a free public source instead of a paid scraper, and name a study only where its PubMed record was confirmed. The eight named studies were checked to exist and match their titles. They were not all read in full for this build.</p>
     <p>This page is general information, not medical advice.</p>
   </footer>
 </main>
@@ -214,4 +230,47 @@ btns.forEach(b=>b.addEventListener("click",()=>{
 </html>
 `;
 writeFileSync(new URL("./index.html", import.meta.url), html);
+
+// One page per practice, so each question has its own address for search.
+const css = html.split("<style>")[1].split("</style>")[0];
+for (const i of items) {
+  const q = `Does ${i.name.replace(/\s*\(.*?\)/g, "").toLowerCase()} work, and is it safe?`;
+  const answer = `${label[i.evidence]}, ${riskLabel[i.risk].toLowerCase()}. ${i.verdict}`;
+  const ld = { "@context": "https://schema.org", "@type": "FAQPage", mainEntity: [{ "@type": "Question", name: q, acceptedAnswer: { "@type": "Answer", text: `${answer} ${i.detail} Watch out: ${i.watch}` } }] };
+  const page = `<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>${esc(q)}</title>
+<meta name="description" content="${esc(answer)}">
+<script type="application/ld+json">${JSON.stringify(ld)}</script>
+<style>${css}main{max-width:680px}</style>
+</head>
+<body>
+<main>
+  <p class="src"><a href="../">All 12 practices</a></p>
+  <h1>${esc(q)}</h1>
+  <p class="tags"><span class="tag e-${i.evidence}">${label[i.evidence]}</span><span class="tag r-${i.risk}">${riskLabel[i.risk]}</span></p>
+  <h2>Short answer</h2>
+  <p class="verdict">${esc(i.verdict)}</p>
+  <h2>What the evidence says</h2>
+  <p>${esc(i.detail)}</p>
+  <h2>What can go wrong</h2>
+  <p>${esc(i.watch)}</p>
+  <h2>What would change this grade</h2>
+  <p>${esc(i.change)}</p>
+  <h2>Sources</h2>
+  ${studyHtml(i)}
+  <p><a href="${pubmed(i.q)}" rel="noopener">Search PubMed yourself</a>${i.count ? ` (${i.count.toLocaleString("en")} papers match)` : ""}</p>
+  <footer>
+    <p>Grade written 11 October 2026. Search refreshed ${checked}. Not reviewed by a doctor. General information, not medical advice.</p>
+  </footer>
+</main>
+</body>
+</html>
+`;
+  mkdirSync(new URL(`./${i.id}/`, import.meta.url), { recursive: true });
+  writeFileSync(new URL(`./${i.id}/index.html`, import.meta.url), page);
+}
 console.log("built index.html with", items.length, "items");
