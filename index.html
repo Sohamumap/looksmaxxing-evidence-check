@@ -82,11 +82,6 @@ article p{margin:0 0 12px}
         <p class="tags"><span class="tag e-strong">Strong evidence</span><span class="tag r-low">Low risk</span></p>
         <p class="verdict">One of the few supplements that does what it says.</p>
       </li>
-      <li id="peroxide-teeth-whitening">
-        <a class="name" href="peroxide-teeth-whitening/">Peroxide teeth whitening</a>
-        <p class="tags"><span class="tag e-strong">Strong evidence</span><span class="tag r-low">Low risk</span></p>
-        <p class="verdict">Works on natural teeth. Follow the instructions.</p>
-      </li>
     </ul>
   </section>
 
@@ -114,8 +109,13 @@ article p{margin:0 0 12px}
 
   <section class="group g-unproven">
     <h2>Unproven</h2>
-    <p class="intro">Little or no good evidence. The usual cost is time, money or false hope.</p>
+    <p class="intro">The evidence is thin, mixed or missing.</p>
     <ul class="rows">
+      <li id="peroxide-teeth-whitening">
+        <a class="name" href="peroxide-teeth-whitening/">Peroxide teeth whitening</a>
+        <p class="tags"><span class="tag e-mixed">Mixed evidence</span><span class="tag r-low">Low risk</span></p>
+        <p class="verdict">It whitens in short trials. The evidence is weaker than the marketing.</p>
+      </li>
       <li id="home-microneedling-for-hair-loss">
         <a class="name" href="home-microneedling-for-hair-loss/">Home microneedling for hair loss</a>
         <p class="tags"><span class="tag e-mixed">Mixed evidence</span><span class="tag r-medium">Medium risk</span></p>
@@ -124,12 +124,12 @@ article p{margin:0 0 12px}
       <li id="mewing">
         <a class="name" href="mewing/">Mewing (tongue posture)</a>
         <p class="tags"><span class="tag e-weak">Weak evidence</span><span class="tag r-low">Low risk</span></p>
-        <p class="verdict">Harmless, but no good evidence it reshapes an adult face.</p>
+        <p class="verdict">No good evidence it reshapes an adult face, and orthodontists warn it can backfire.</p>
       </li>
       <li id="hard-chewing-and-jaw-trainers">
         <a class="name" href="hard-chewing-and-jaw-trainers/">Hard chewing and jaw trainers</a>
         <p class="tags"><span class="tag e-weak">Weak evidence</span><span class="tag r-medium">Medium risk</span></p>
-        <p class="verdict">Little to gain, and a real chance of jaw pain.</p>
+        <p class="verdict">A six-month trial found a stronger bite and no change in jaw shape.</p>
       </li>
     </ul>
   </section>
@@ -153,20 +153,29 @@ article p{margin:0 0 12px}
   <footer>
     <details>
       <summary>Why two grades instead of one score</summary>
-      <p>Because they come apart. Steroids build muscle and can wreck your heart. Mewing is harmless and does very little. One score would hide both facts.</p>
+      <p>Because they come apart. Steroids build muscle and can wreck your heart. Sunscreen is about as safe as anything here and has a long trial behind it. One score would blur the two questions together.</p>
     </details>
     <details>
       <summary>How the grades were decided</summary>
-      <p>"Strong" means repeated controlled trials in people. "Mixed" means a few small or inconsistent trials. "Weak" and "none" mean the claim rests on theory, anecdotes or before-and-after photos. Each practice has its own page with a named study where a good one exists, that study's limit, and what new evidence would change the grade.</p>
+      <p>"Strong" means repeated controlled trials in people. "Mixed" means a few small or inconsistent trials. "Weak" and "none" mean the claim rests on theory, anecdotes or before-and-after photos. Each practice has its own page with a named source, that source's limit, and what new evidence would change the grade.</p>
     </details>
     <details>
       <summary>Refreshed is not the same as reviewed</summary>
-      <p>A script re-runs each PubMed search every week and updates the paper count on each page. That number shows how much research exists, not how good it is. The grades were written once, on 11 October 2026, and are not re-checked automatically. No doctor has reviewed them.</p>
+      <p>A script re-runs each PubMed search every week and updates the paper count on each page. That number shows how much research exists, not how good it is. If a search fails, the page keeps the last good number and says so. The grades were written once, on 11 October 2026, and are not re-checked automatically. No doctor has reviewed them.</p>
     </details>
     <details>
       <summary>How this was built</summary>
-      <p>Made by Soham Umap with Claude Code as a demo for looksmaxxing.guide, in a 45-minute test window. The AI wrote the code and the first draft of every entry. My calls: keep evidence and risk as two separate grades, pull live numbers from a free public source instead of a paid scraper, and name a study only where its PubMed record was confirmed. The eight named studies were checked to exist and match their titles. They were not all read in full.</p>
-      <p>The layout was simplified later the same day, after the test was submitted, because the first version was cluttered. The entries and grades did not change.</p>
+      <p>Made by Soham Umap with Claude Code as a demo for looksmaxxing.guide, in a 45-minute test window. The AI wrote the code and the first draft of every entry. My calls: keep evidence and risk as two separate grades, pull live numbers from a free public source instead of a paid scraper, and name a source only where its record was confirmed. Code: <a href="https://github.com/Sohamumap/looksmaxxing-evidence-check">github.com/Sohamumap/looksmaxxing-evidence-check</a>.</p>
+    </details>
+    <details>
+      <summary>What changed after the test, and what was wrong</summary>
+      <p><strong>In the 45-minute window:</strong> the 12 entries and grades, the two-grade idea, paper counts from PubMed, and eight named studies confirmed to exist and match their titles. They were not all read in full.</p>
+      <p><strong>Later the same day:</strong> the layout was simplified because the first version was cluttered.</p>
+      <p><strong>After an outside review, three AI-drafted claims were checked against their sources and corrected:</strong></p>
+      <p>Teeth whitening was graded "strong evidence". The 2018 Cochrane review rates the certainty low to very low, so it is now "mixed" and has moved out of "Worth doing".</p>
+      <p>Mewing was called "harmless". The American Association of Orthodontists names possible harms, so that word is gone.</p>
+      <p>Hard chewing was said to thicken the chewing muscles. The one randomised trial found no change in muscle thickness or jaw shape, so the entry now says that.</p>
+      <p>The other nine entries have not had the same check yet.</p>
     </details>
     <p class="meta">General information, not medical advice.</p>
   </footer>
